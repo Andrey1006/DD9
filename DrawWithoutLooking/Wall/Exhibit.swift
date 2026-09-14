@@ -9,6 +9,8 @@ struct Exhibit: View {
     @State private var reveal: Double = 1
     @State private var straight = false
     @State private var doomed = false
+    @State private var printed: Printed?
+    @State private var note: String?
 
     private var s: Scrawl? { vault.scrawl(id) }
 
@@ -32,6 +34,9 @@ struct Exhibit: View {
             }
         }
         .pushedScreen("Wall") { chrome.wall.removeLast() }
+        .sheet(item: $printed) { p in
+            ActivityBoard(items: [p.url])
+        }
         .alert("Take it off the wall?", isPresented: $doomed) {
             Button("Cancel", role: .cancel) {}
             Button("Remove", role: .destructive) {
@@ -101,6 +106,20 @@ struct Exhibit: View {
             .buttonStyle(GhostButtonStyle(tint: Ink.cobalt, seed: 313, tall: 46))
 
             HStack(spacing: 10) {
+                Button("Share it") { share(s) }
+                    .buttonStyle(GhostButtonStyle(tint: Ink.bone, seed: 319, tall: 46))
+
+                Button("Save to photos") { stash(s) }
+                    .buttonStyle(GhostButtonStyle(tint: Ink.cobalt, seed: 323, tall: 46))
+            }
+
+            if let note {
+                Placard(note, size: 9, color: Ink.faded)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .transition(.opacity)
+            }
+
+            HStack(spacing: 10) {
                 Button(s.pinned ? "Unpin" : "Pin it") {
                     Bumper.tap(.light)
                     vault.flip(id)
@@ -111,6 +130,40 @@ struct Exhibit: View {
                     .buttonStyle(GhostButtonStyle(tint: Ink.faded, seed: 317, tall: 46))
             }
         }
+    }
+
+    private func printable(_ s: Scrawl) -> UIImage? {
+        Printer.render(s, strokes: straight ? DriftReader.straighten(s.strokes, by: vault.drift) : s.strokes)
+    }
+
+    private func share(_ s: Scrawl) {
+        Bumper.tap(.light)
+        guard let image = printable(s), let url = Printer.file(image, named: s.word) else {
+            flash("The plate would not print. Try again.")
+            return
+        }
+        note = nil
+        printed = Printed(url: url)
+    }
+
+    private func stash(_ s: Scrawl) {
+        Bumper.tap(.light)
+        guard let image = printable(s) else {
+            flash("The plate would not print. Try again.")
+            return
+        }
+        flash("pressing the plate…")
+        Task {
+            let ok = await Printer.stash(image)
+            await MainActor.run {
+                Bumper.verdict(ok)
+                flash(ok ? "saved to your photos" : "photos turned it away — allow access in Settings")
+            }
+        }
+    }
+
+    private func flash(_ text: String) {
+        withAnimation(.easeOut(duration: 0.25)) { note = text }
     }
 
     @ViewBuilder

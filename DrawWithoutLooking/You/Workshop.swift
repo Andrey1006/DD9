@@ -6,6 +6,7 @@ struct Workshop: View {
 
     @State private var policy = false
     @State private var burning = false
+    @State private var handle = ""
 
     private var nib: Nib { vault.nib ?? .fresh(handle: "Anon") }
 
@@ -18,6 +19,7 @@ struct Workshop: View {
                     Slug(text: "Workshop", size: 32)
                         .padding(.top, 4)
 
+                    signature
                     tempoBlock
                     switches
                     policyRow
@@ -29,6 +31,7 @@ struct Workshop: View {
             }
         }
         .pushedScreen("You") { chrome.you.removeLast() }
+        .onAppear { handle = nib.handle }
         .sheet(isPresented: $policy) {
             PrivacyPolicySheet()
                 .presentationDetents([.large])
@@ -39,6 +42,23 @@ struct Workshop: View {
         } message: {
             Text("Every drawing, bout, streak and setting is deleted — including the six we shipped with. You will start from the calibration circle again.")
         }
+    }
+
+    private var signature: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Placard("the signature", size: 9, color: Ink.flare)
+            PlacardField(caption: "Sign the wall as", text: $handle, seed: 517)
+            Text("Goes on every new drawing and on your seat in a bout. Work already on the wall keeps the name it was signed with.")
+                .font(.system(size: 12.5)).foregroundColor(Ink.faded).lineSpacing(3)
+        }
+        .onChange(of: handle) { v in sign(v) }
+    }
+
+    private func sign(_ raw: String) {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed != nib.handle, var n = vault.nib else { return }
+        n.handle = trimmed
+        vault.nib = n
     }
 
     private var tempoBlock: some View {

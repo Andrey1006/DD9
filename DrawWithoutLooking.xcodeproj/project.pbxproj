@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		2716FAA230585FD60096D6E5 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 2716FAA130585FD60096D6E5 /* FirebaseRemoteConfig */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		27CB5D123048B3FF00706E60 /* DrawWithoutLooking.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DrawWithoutLooking.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2716FAA230585FD60096D6E5 /* FirebaseRemoteConfig in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = DrawWithoutLooking;
 			packageProductDependencies = (
+				2716FAA130585FD60096D6E5 /* FirebaseRemoteConfig */,
 			);
 			productName = DrawWithoutLooking;
 			productReference = 27CB5D123048B3FF00706E60 /* DrawWithoutLooking.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 27CB5D093048B3FF00706E60;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2716FAA030585FD60096D6E5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 27CB5D133048B3FF00706E60 /* Products */;
 			projectDirPath = "";
@@ -255,6 +264,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ink Hand Diary";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to capture a photo of your drawing and add it to your diary.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access to pick an image for your drawing and profile.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -266,7 +277,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.brynnfinleyapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -295,6 +306,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ink Hand Diary";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to capture a photo of your drawing and add it to your diary.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access to pick an image for your drawing and profile.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -306,7 +319,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.brynnfinleyapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -346,6 +359,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2716FAA030585FD60096D6E5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.19.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2716FAA130585FD60096D6E5 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2716FAA030585FD60096D6E5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 27CB5D0A3048B3FF00706E60 /* Project object */;
 }
