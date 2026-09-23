@@ -121,3 +121,14 @@ struct TickGlyph: Shape {
         return p
     }
 }
+
+struct LensGlyph: Shape {
+    var seed: UInt64 = 1
+    func path(in r: CGRect) -> Path {
+        let side = min(r.width, r.height) * 0.74
+        var p = WobblyBlob(seed: seed, amp: 1.1).path(in: CGRect(x: r.minX, y: r.minY, width: side, height: side))
+        p.move(to: CGPoint(x: r.minX + side * 0.8 + jitter(seed, 1), y: r.minY + side * 0.8 + jitter(seed, 2)))
+        p.addLine(to: CGPoint(x: r.maxX + jitter(seed, 3), y: r.maxY + jitter(seed, 4)))
+        return p
+    }
+}

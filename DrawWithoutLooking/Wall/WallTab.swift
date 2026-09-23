@@ -17,6 +17,9 @@ struct WallTab: View {
     @EnvironmentObject private var chrome: Chrome
 
     @State private var filter: Hang = .all
+    @State private var probe = ""
+    @State private var packs: Set<Pack> = []
+    @State private var seeking = false
     @State private var pan: CGSize = .zero
     @State private var anchor: CGSize = .zero
     @State private var zoom: CGFloat = 1
@@ -26,12 +29,28 @@ struct WallTab: View {
     private let gap: CGFloat = 18
 
     private var hung: [Scrawl] {
+        let shelf: [Scrawl]
         switch filter {
-        case .all: return vault.scrawls
-        case .pinned: return vault.scrawls.filter(\.pinned)
-        case .unreadable: return vault.scrawls.filter(\.unreadable)
+        case .all: shelf = vault.scrawls
+        case .pinned: shelf = vault.scrawls.filter(\.pinned)
+        case .unreadable: shelf = vault.scrawls.filter(\.unreadable)
+        }
+
+        let q = probe.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty || !packs.isEmpty else { return shelf }
+
+        return shelf.filter { s in
+            guard packs.isEmpty || packs.contains(s.pack) else { return false }
+            guard !q.isEmpty else { return true }
+            return s.word.lowercased().contains(q) || (s.artist?.lowercased().contains(q) ?? false)
         }
     }
+
+    private var narrowed: Bool {
+        !probe.trimmingCharacters(in: .whitespaces).isEmpty || !packs.isEmpty
+    }
+
+    private var topPad: CGFloat { seeking ? 196 : 72 }
 
     var body: some View {
         GeometryReader { geo in
@@ -41,13 +60,19 @@ struct WallTab: View {
                 if hung.isEmpty {
                     ScrollView(showsIndicators: false) {
                         VStack {
-                            Spacer(minLength: 90)
+                            Spacer(minLength: topPad + 18)
                             EmptyFrame(
-                                headline: filter == .all ? "Bare wall" : "Nothing here yet",
+                                headline: emptyHead,
                                 note: emptyNote,
-                                cta: filter == .all ? "Draw something" : "Show everything"
+                                cta: narrowed ? "Clear the search" : (filter == .all ? "Draw something" : "Show everything")
                             ) {
-                                filter == .all ? (chrome.bay = .draw) : (filter = .all)
+                                if narrowed {
+                                    clearSearch()
+                                } else if filter == .all {
+                                    chrome.bay = .draw
+                                } else {
+                                    filter = .all
+                                }
                             }
                         }
                         .padding(.horizontal, 22)
@@ -62,7 +87,15 @@ struct WallTab: View {
         }
     }
 
+    private var emptyHead: String {
+        if narrowed { return "No such drawing" }
+        return filter == .all ? "Bare wall" : "Nothing here yet"
+    }
+
     private var emptyNote: String {
+        if narrowed {
+            return "Nothing on this shelf matches that word or those packs. Widen the search and the wall fills back up."
+        }
         switch filter {
         case .all: return "Every blind round lands here and stays. Right now the nails are empty."
         case .pinned: return "Pin an exhibit from its page and it shows up on this shelf."
@@ -74,7 +107,7 @@ struct WallTab: View {
         let cols = 2
         let rows = Int(ceil(Double(hung.count) / Double(cols)))
         let boardW = CGFloat(cols) * cell.width + CGFloat(cols + 1) * gap
-        let boardH = CGFloat(rows) * cell.height + CGFloat(rows + 1) * gap + 90
+        let boardH = CGFloat(rows) * cell.height + CGFloat(rows + 1) * gap + topPad + 18
 
         return ZStack {
             ForEach(Array(hung.enumerated()), id: \.element.id) { i, s in
@@ -82,7 +115,7 @@ struct WallTab: View {
                     .frame(width: cell.width, height: cell.height)
                     .position(
                         x: gap + cell.width / 2 + CGFloat(i % cols) * (cell.width + gap) + wobbleOffset(s.id).width,
-                        y: 72 + gap + cell.height / 2 + CGFloat(i / cols) * (cell.height + gap) + wobbleOffset(s.id).height
+                        y: topPad + gap + cell.height / 2 + CGFloat(i / cols) * (cell.height + gap) + wobbleOffset(s.id).height
                     )
             }
         }
@@ -157,22 +190,75 @@ struct WallTab: View {
     }
 
     private var bar: some View {
-        HStack(spacing: 8) {
-            ForEach(Hang.allCases) { h in
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                ForEach(Hang.allCases) { h in
+                    Button {
+                        Bumper.tap(.light)
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                            filter = h
+                            reframe()
+                        }
+                    } label: {
+                        Chip(text: h.caption, on: filter == h, seed: UInt64(abs(h.rawValue.hashValue % 400)))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Spacer(minLength: 2)
+
                 Button {
                     Bumper.tap(.light)
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                        filter = h
-                        anchor = .zero
-                        zoom = 1
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.8)) {
+                        seeking.toggle()
+                        if !seeking { probe = "" ; packs = [] }
+                        reframe()
                     }
                 } label: {
-                    Chip(text: h.caption, on: filter == h, seed: UInt64(abs(h.rawValue.hashValue % 400)))
+                    Shaky { beat in
+                        LensGlyph(seed: beat &+ 341)
+                            .stroke(
+                                seeking || narrowed ? Ink.flare : Ink.faded,
+                                style: StrokeStyle(lineWidth: 1.5, lineJoin: .round)
+                            )
+                            .frame(width: 16, height: 16)
+                    }
+                    .padding(6)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+
+                Placard("\(hung.count)", size: 12, color: Ink.flare)
             }
-            Spacer()
-            Placard("\(hung.count)", size: 12, color: Ink.flare)
+
+            if seeking {
+                VStack(spacing: 11) {
+                    PlacardField(caption: "Word or signature", text: $probe, limit: 20, seed: 343)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 7) {
+                            ForEach(Pack.allCases) { p in
+                                Button {
+                                    Bumper.tap(.light)
+                                    withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+                                        if packs.contains(p) {
+                                            packs.remove(p)
+                                        } else {
+                                            packs.insert(p)
+                                        }
+                                        reframe()
+                                    }
+                                } label: {
+                                    Chip(text: p.title, on: packs.contains(p), tint: p.stamp, seed: UInt64(abs(p.rawValue.hashValue % 380)))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 1)
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
@@ -181,5 +267,20 @@ struct WallTab: View {
             LinearGradient(colors: [Ink.base, Ink.base, Ink.base.opacity(0)], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea(edges: .top)
         )
+        .onChange(of: probe) { _ in reframe() }
+    }
+
+    private func clearSearch() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
+            probe = ""
+            packs = []
+            reframe()
+        }
+    }
+
+    private func reframe() {
+        anchor = .zero
+        pan = .zero
+        zoom = 1
     }
 }

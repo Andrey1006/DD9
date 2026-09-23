@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct Workshop: View {
     @EnvironmentObject private var vault: Vault
@@ -7,6 +8,9 @@ struct Workshop: View {
     @State private var policy = false
     @State private var burning = false
     @State private var handle = ""
+    @State private var exported: Printed?
+    @State private var importing = false
+    @State private var archiveNote: String?
 
     private var nib: Nib { vault.nib ?? .fresh(handle: "Anon") }
 
@@ -23,6 +27,7 @@ struct Workshop: View {
                     tempoBlock
                     switches
                     policyRow
+                    archiveBlock
                     dangerRow
                     colophon
                 }
@@ -32,6 +37,12 @@ struct Workshop: View {
         }
         .pushedScreen("You") { chrome.you.removeLast() }
         .onAppear { handle = nib.handle }
+        .sheet(item: $exported) { done in
+            ActivityBoard(items: [done.url])
+        }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+            readArchive(result)
+        }
         .sheet(isPresented: $policy) {
             PrivacyPolicySheet()
                 .presentationDetents([.large])
@@ -144,6 +155,63 @@ struct Workshop: View {
             .hairline(seed: 533)
         }
         .buttonStyle(.plain)
+    }
+
+    private var archiveBlock: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Placard("the archive", size: 9, color: Ink.cobalt)
+            Text("Everything lives on this phone and nowhere else — delete the app and it goes with it. Write the whole vault out to a file, or read one back in.")
+                .font(.system(size: 12.5)).foregroundColor(Ink.faded).lineSpacing(3)
+
+            HStack(spacing: 10) {
+                Button("Export") { writeArchive() }
+                    .buttonStyle(GhostButtonStyle(tint: Ink.bone, seed: 541, tall: 48))
+
+                Button("Import") {
+                    Bumper.tap(.light)
+                    importing = true
+                }
+                .buttonStyle(GhostButtonStyle(tint: Ink.cobalt, seed: 543, tall: 48))
+            }
+
+            if let archiveNote {
+                Placard(archiveNote, size: 9)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    private func writeArchive() {
+        Bumper.tap(.light)
+        guard let url = Archivist.file(vault.ledger()) else {
+            mutter("The archive would not write. Try again.")
+            return
+        }
+        archiveNote = nil
+        exported = Printed(url: url)
+    }
+
+    private func readArchive(_ result: Result<URL, Error>) {
+        switch result {
+        case .failure:
+            mutter("That file never opened.")
+        case .success(let url):
+            guard let ledger = Archivist.read(url) else {
+                Bumper.verdict(false)
+                mutter("That is not an archive this app wrote.")
+                return
+            }
+            let added = vault.swallow(ledger)
+            handle = nib.handle
+            Bumper.verdict(true)
+            mutter(added == 0
+                   ? "nothing new in there — every drawing was already yours"
+                   : "\(added) \(added == 1 ? "drawing" : "drawings") joined the wall")
+        }
+    }
+
+    private func mutter(_ text: String) {
+        withAnimation(.easeOut(duration: 0.25)) { archiveNote = text }
     }
 
     private var dangerRow: some View {

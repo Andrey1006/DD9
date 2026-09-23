@@ -145,6 +145,38 @@ final class Vault: ObservableObject {
         scrawls.prefix(8).map(\.word)
     }
 
+    func ledger() -> Ledger {
+        Ledger(schema: Self.schema, madeAt: Date(), nib: nib, scrawls: scrawls, bouts: bouts, days: days)
+    }
+
+    @discardableResult
+    func swallow(_ ledger: Ledger) -> Int {
+        let known = Set(scrawls.map(\.id))
+        let fresh = ledger.scrawls.filter { !known.contains($0.id) }
+        if !fresh.isEmpty {
+            scrawls.append(contentsOf: fresh)
+            scrawls.sort { $0.bornAt > $1.bornAt }
+        }
+
+        let filed = Set(bouts.map(\.id))
+        let newBouts = ledger.bouts.filter { !filed.contains($0.id) }
+        if !newBouts.isEmpty {
+            bouts.append(contentsOf: newBouts)
+            bouts.sort { $0.at > $1.at }
+        }
+
+        for (day, count) in ledger.days {
+            days[day] = max(days[day] ?? 0, count)
+        }
+
+        if nib == nil { nib = ledger.nib }
+
+        flushScrawls()
+        flush(bouts, to: Key.bouts)
+        flush(days, to: Key.days)
+        return fresh.count
+    }
+
     func burnEverything() {
         wipeStorage()
         scrawls = []
