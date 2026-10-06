@@ -1,3 +1,4 @@
+
 import SwiftUI
 
 private struct ScrawlTrail: Shape {

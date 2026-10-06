@@ -1,7 +1,10 @@
+
 import SwiftUI
 
 struct WordPicker: View {
+    
     let packs: [Pack]
+    
     let onPick: (Prompt) -> Void
 
     @State private var probe = ""
